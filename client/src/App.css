@@ -77,6 +77,26 @@ main {
   flex-wrap: wrap;
 }
 
+@media (max-width: 768px) {
+  .admin-panel {
+    flex-direction: column;
+  }
+
+  .panel-section {
+    min-width: 100%;
+  }
+
+  .control-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .control-group label {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+}
+
 .panel-section {
   flex: 1;
   background: #333;

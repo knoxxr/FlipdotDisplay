@@ -20,8 +20,6 @@ const DisplayGrid = ({
         // Schedule clicks for each column
         for (let c = 0; c < cols; c++) {
             // Play sound with delay matching the visual transition delay
-            // The visual delay is c * columnDelay (ms).
-            // soundManager expects seconds.
             soundManager.playColumnFlip(c * columnDelay);
         }
     }, [data, cols, columnDelay]);
@@ -53,7 +51,8 @@ const DisplayGrid = ({
             className="display-grid"
             style={{
                 gridTemplateColumns: `repeat(${cols}, 1fr)`,
-                width: 'fit-content',
+                width: '100%',
+                maxWidth: '100%',
                 margin: '0 auto'
             }}
         >

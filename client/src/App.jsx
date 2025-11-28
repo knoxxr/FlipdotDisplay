@@ -158,6 +158,11 @@ function App() {
             colorBack={settings.colors.back}
             columnDelay={settings.timing.columnDelay}
           />
+          {isFullScreen && (
+            <button className="exit-fullscreen-btn" onClick={toggleFullScreen}>
+              Exit Full Screen
+            </button>
+          )}
         </div>
 
         {!isFullScreen && (

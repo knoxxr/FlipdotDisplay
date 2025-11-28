@@ -10,7 +10,7 @@
     },
     "timing": {
       "flipSpeed": 100,
-      "columnDelay": 3,
+      "columnDelay": 30,
       "slideDuration": 3000
     }
   },

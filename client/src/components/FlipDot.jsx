@@ -6,8 +6,9 @@ const FlipDot = ({ active, colorFront, colorBack, size = 20, transitionDelay = 0
         <div
             className={`flip-dot-container ${active ? 'active' : ''}`}
             style={{
-                width: size,
-                height: size
+                width: '100%',
+                aspectRatio: '1 / 1',
+                height: 'auto'
             }}
         >
             <div
