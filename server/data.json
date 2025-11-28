@@ -10,8 +10,8 @@
     },
     "timing": {
       "flipSpeed": 100,
-      "columnDelay": 30,
-      "slideDuration": 3000
+      "columnDelay": 300,
+      "slideDuration": 30000
     }
   },
   "contentQueue": [
