@@ -1,0 +1,34 @@
+{
+  "settings": {
+    "resolution": {
+      "rows": 30,
+      "cols": 60
+    },
+    "colors": {
+      "front": "#000000",
+      "back": "#FFFFFF"
+    },
+    "timing": {
+      "flipSpeed": 100,
+      "columnDelay": 3,
+      "slideDuration": 3000
+    }
+  },
+  "contentQueue": [
+    {
+      "id": "1764324635238",
+      "type": "image",
+      "content": "/uploads/1764324635236-256707488.png",
+      "originalName": "í´ë¨¸ë¸ì´ë.png",
+      "priority": 0,
+      "addedAt": 1764324635238
+    },
+    {
+      "id": "1764324748253",
+      "type": "text",
+      "content": "Hello",
+      "priority": 0,
+      "addedAt": 1764324748253
+    }
+  ]
+}

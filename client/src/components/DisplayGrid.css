@@ -1,0 +1,10 @@
+.display-grid {
+    display: grid;
+    gap: 1px;
+    /* Small gap between dots */
+    background-color: #111;
+    /* Dark background for the panel */
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}

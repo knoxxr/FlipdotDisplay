@@ -1,0 +1,40 @@
+.flip-dot-container {
+  perspective: 1000px;
+  display: inline-block;
+}
+
+.flip-dot-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  /* Realistic mechanical snap */
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.flip-dot-container.active .flip-dot-inner {
+  transform: rotateX(180deg);
+}
+
+.flip-dot-front,
+.flip-dot-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 50%;
+  /* Circular dots */
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.5);
+  /* Depth hint */
+}
+
+.flip-dot-front {
+  /* Default color handled by inline style */
+}
+
+.flip-dot-back {
+  transform: rotateX(180deg);
+  /* Default color handled by inline style */
+}
