@@ -23,7 +23,7 @@ function App() {
   const [fileInput, setFileInput] = useState(null);
 
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Fetch initial data
   useEffect(() => {
@@ -261,6 +261,18 @@ function App() {
     setIsFullScreen(!isFullScreen);
   };
 
+  // Handle ESC key to exit full screen
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isFullScreen) {
+        setIsFullScreen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullScreen]);
+
   return (
     <div className={`app-container ${isFullScreen ? 'full-screen-mode' : ''}`}>
       {!isFullScreen && (
@@ -293,11 +305,6 @@ function App() {
             flipDuration={300}
             isPlaying={isPlaying}
           />
-          {isFullScreen && (
-            <button className="exit-fullscreen-btn" onClick={toggleFullScreen}>
-              Exit Full Screen
-            </button>
-          )}
         </div>
 
         {!isFullScreen && (

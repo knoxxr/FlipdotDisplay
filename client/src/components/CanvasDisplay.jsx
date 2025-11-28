@@ -16,6 +16,7 @@ const CanvasDisplay = ({
     const requestRef = useRef();
     const startTimeRef = useRef(0);
     const prevDataRef = useRef([]);
+    const soundPrevDataRef = useRef([]); // Separate ref for sound triggering
     const dotModifiersRef = useRef([]);
     const rowDelaysRef = useRef([]);
 
@@ -59,7 +60,8 @@ const CanvasDisplay = ({
         if (wasPlayingRef.current === isPlaying) return;
 
         if (!isPlaying) {
-            // Just paused
+            // Just paused - stop all sounds
+            soundManager.stopAll();
             pauseStartRef.current = Date.now();
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
         } else {
@@ -89,22 +91,68 @@ const CanvasDisplay = ({
             }));
         }
 
-        // Trigger sounds only if playing (or should we trigger anyway? usually yes, but if paused immediately?)
-        // If data changes, we assume we want to play the sound.
-        // But if we are PAUSED when data changes (e.g. manual next), maybe we shouldn't?
-        // For now, let's play sound.
-
-        // The animation follows a diagonal wave: delay = (c + r * 2) * columnDelay
-        // Max delay is roughly (cols + rows * 2) * columnDelay
-        const maxWaveIndex = cols + rows * 2;
-        for (let i = 0; i < maxWaveIndex; i++) {
-            soundManager.playColumnFlip(i * columnDelay);
+        // Ensure rowDelays are initialized
+        if (rowDelaysRef.current.length !== rows) {
+            const delays = new Array(rows).fill(0);
+            delays[0] = 0;
+            for (let i = 1; i < rows; i++) {
+                const increment = 1 + Math.random() * 2;
+                delays[i] = delays[i - 1] + increment;
+            }
+            rowDelaysRef.current = delays;
         }
 
+        // Trigger sounds only if playing
+        if (isPlaying) {
+            // Stop any existing sounds first to prevent overlap
+            soundManager.stopAll();
+
+            // Check if any dots are actually changing
+            const prevData = soundPrevDataRef.current;
+            const hasPrevData = prevData.length === rows * cols;
+            let hasChanges = false;
+
+            if (!hasPrevData) {
+                // First load - check if any dots are non-zero
+                hasChanges = data.some(val => val !== 0);
+            } else {
+                // Check if any dots are changing
+                for (let i = 0; i < data.length; i++) {
+                    if ((data[i] || 0) !== (prevData[i] || 0)) {
+                        hasChanges = true;
+                        break;
+                    }
+                }
+            }
+
+            // Play continuous sound during animation if there are changes
+            if (hasChanges) {
+                // Calculate animation duration
+                const flipDuration = 300;
+                const maxDelay = ((cols - 1) + (rows - 1) * 2) * columnDelay;
+                const totalAnimationTime = maxDelay + flipDuration;
+
+                soundManager.playAnimationSound(totalAnimationTime);
+            }
+
+            // Update sound prev data only when playing
+            soundPrevDataRef.current = [...data];
+        }
+
+        // Update animation prevData after animation completes
+        // Calculate animation duration
+        const flipDuration = 300;
+        const maxDelay = ((cols - 1) + (rows - 1) * 2) * columnDelay;
+        const totalAnimationTime = maxDelay + flipDuration;
+
+        const updateTimeout = setTimeout(() => {
+            prevDataRef.current = [...data];
+        }, totalAnimationTime);
+
         return () => {
-            prevDataRef.current = data;
+            clearTimeout(updateTimeout);
         };
-    }, [data, cols, rows, columnDelay]);
+    }, [data, cols, rows, columnDelay, isPlaying]);
 
     const animate = () => {
         if (!isPlaying) return; // Don't run loop if paused
