@@ -4,25 +4,14 @@ class SoundManager {
         this.buffers = {};
     }
 
-    // Generate a short mechanical click sound
-    createClickBuffer() {
-        if (this.buffers.click) return this.buffers.click;
-
-        const duration = 0.05; // 50ms
-        const sampleRate = this.ctx.sampleRate;
-        const frameCount = sampleRate * duration;
-        const buffer = this.ctx.createBuffer(1, frameCount, sampleRate);
-        const data = buffer.getChannelData(0);
-
-        for (let i = 0; i < frameCount; i++) {
-            // White noise with exponential decay
-            data[i] = (Math.random() * 2 - 1) * Math.exp(-5 * i / frameCount);
+    // Explicitly resume audio context (must be called on user interaction)
+    resume() {
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
         }
-
-        this.buffers.click = buffer;
-        return buffer;
     }
 
+    // Generate a realistic mechanical flipdot sound
     playClick(time = 0, volume = 0.1) {
         if (this.ctx.state === 'suspended') {
             this.ctx.resume();
@@ -31,13 +20,17 @@ class SoundManager {
         const source = this.ctx.createBufferSource();
         source.buffer = this.createClickBuffer();
 
+        // Randomize playback rate slightly for "organic" feel
+        // Large displays have slight variances in motor speed/tension
+        source.playbackRate.value = 0.9 + Math.random() * 0.2;
+
         const gainNode = this.ctx.createGain();
         gainNode.gain.value = volume;
 
-        // Lowpass filter to make it sound more "plastic/mechanical"
+        // Lowpass filter to dampen the harshness
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.frequency.value = 1200;
+        filter.frequency.value = 2000 + Math.random() * 1000; // Vary tone slightly
 
         source.connect(filter);
         filter.connect(gainNode);
@@ -48,10 +41,12 @@ class SoundManager {
 
     // Play a "wave" of clicks
     playColumnFlip(delayMs, count) {
-        // Limit the number of simultaneous sounds to avoid distortion/lag
-        // We play one sound per column, but maybe vary the pitch slightly?
-        // Actually, just one click per column is enough to simulate the "rrrrrr" sound.
-        this.playClick(delayMs / 1000, 0.05);
+        // For a large display sound, we want a "rain" effect.
+        // We can play multiple clicks with slight random offsets to simulate the column not flipping perfectly instantly.
+        // But for performance, one "fat" click per column (or slightly randomized) is good.
+        // Let's add a tiny random jitter to the start time to make it less robotic.
+        const jitter = (Math.random() * 0.01);
+        this.playClick((delayMs / 1000) + jitter, 0.15);
     }
 }
 

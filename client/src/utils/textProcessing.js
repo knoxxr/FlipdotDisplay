@@ -1,34 +1,59 @@
 export const processText = (text, rows, cols) => {
+    // Use a high-resolution canvas to avoid rasterization artifacts at small sizes
+    const scale = 10;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
 
-    canvas.width = cols;
-    canvas.height = rows;
+    canvas.width = cols * scale;
+    canvas.height = rows * scale;
 
     // Fill background with black
     ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, cols, rows);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Draw text
     ctx.fillStyle = 'white';
-    // Adjust font size to fit height roughly
-    const fontSize = Math.floor(rows * 0.8);
-    ctx.font = `bold ${fontSize}px monospace`;
+
+    // Auto-size text to fit
+    let fontSize = Math.floor(rows * scale); // Start with max height
+    ctx.font = `bold ${fontSize}px Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    ctx.fillText(text, cols / 2, rows / 2);
+    // Measure and reduce size until it fits width
+    const maxWidth = canvas.width * 0.95; // 95% of width
+    while (ctx.measureText(text).width > maxWidth && fontSize > 1) {
+        fontSize--;
+        ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+    }
 
-    const imageData = ctx.getImageData(0, 0, cols, rows);
+    // Also ensure it fits height (though starting at rows*scale usually covers this, 
+    // some fonts might be tall)
+    // We can just trust the width check mostly, but let's be safe.
+    // Actually, starting at rows*scale is already the max height constraint.
+
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     const grid = new Array(rows * cols).fill(0);
 
-    for (let i = 0; i < data.length; i += 4) {
-        // Check red channel (since it's white text on black bg)
-        if (data[i] > 128) {
-            grid[i / 4] = 1;
-        } else {
-            grid[i / 4] = 0;
+    // Sample the grid points
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            // Sample the center of each virtual grid cell
+            const centerX = Math.floor(c * scale + scale / 2);
+            const centerY = Math.floor(r * scale + scale / 2);
+
+            const index = (centerY * canvas.width + centerX) * 4;
+
+            // Check red channel
+            // Threshold can be higher now since we have cleaner pixels
+            if (data[index] > 128) {
+                grid[r * cols + c] = 1;
+            } else {
+                grid[r * cols + c] = 0;
+            }
         }
     }
 

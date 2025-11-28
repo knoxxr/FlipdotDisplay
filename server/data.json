@@ -2,33 +2,37 @@
   "settings": {
     "resolution": {
       "rows": 30,
-      "cols": 60
+      "cols": 120
     },
     "colors": {
-      "front": "#000000",
+      "front": "#616161",
       "back": "#FFFFFF"
     },
     "timing": {
-      "flipSpeed": 100,
-      "columnDelay": 300,
-      "slideDuration": 30000
+      "flipTime": 300
     }
   },
   "contentQueue": [
-    {
-      "id": "1764324635238",
-      "type": "image",
-      "content": "/uploads/1764324635236-256707488.png",
-      "originalName": "í´ë¨¸ë¸ì´ë.png",
-      "priority": 0,
-      "addedAt": 1764324635238
-    },
     {
       "id": "1764324748253",
       "type": "text",
       "content": "Hello",
       "priority": 0,
       "addedAt": 1764324748253
+    },
+    {
+      "id": "1764327468552",
+      "type": "text",
+      "content": "안녕하세요",
+      "priority": 0,
+      "addedAt": 1764327468552
+    },
+    {
+      "id": "1764329691975",
+      "type": "text",
+      "content": "좋아요",
+      "priority": 0,
+      "addedAt": 1764329691975
     }
   ]
 }
