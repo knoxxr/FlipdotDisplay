@@ -11,7 +11,9 @@ function App() {
   const [settings, setSettings] = useState({
     resolution: { rows: 30, cols: 60 },
     colors: { front: '#000000', back: '#FFFFFF' },
-    timing: { flipTime: 50 }
+    timing: { flipDuration: 300, columnDelay: 100 },
+    animationDirection: 'left-right',
+    soundType: 'default'
   });
 
   const [queue, setQueue] = useState([]);
@@ -31,8 +33,8 @@ function App() {
       .then(res => res.json())
       .then(data => {
         // Ensure new structure if old data exists
-        if (!data.timing.flipTime) {
-          data.timing = { flipTime: 50 };
+        if (!data.timing || !data.timing.columnDelay) {
+          data.timing = { flipDuration: 300, columnDelay: 100 };
         }
         setSettings(data);
       });
@@ -169,9 +171,9 @@ function App() {
       // Calculate duration
       const rows = settings.resolution.rows;
       const cols = settings.resolution.cols;
-      const flipTime = settings.timing.flipTime;
-      const flipDuration = 300;
-      const maxDelay = ((cols - 1) + (rows - 1) * 2) * flipTime;
+      const columnDelay = settings.timing.columnDelay || 100;
+      const flipDuration = settings.timing.flipDuration || 300;
+      const maxDelay = ((cols - 1) + (rows - 1) * 2) * columnDelay;
       const totalAnimationTime = maxDelay + flipDuration;
       const HOLD_TIME = 2000;
 
@@ -190,12 +192,12 @@ function App() {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [queue, currentIndex, settings.resolution.rows, settings.resolution.cols, settings.timing.flipTime, isPlaying, startTimer, setPlaybackSettings, settings]); // Removed isPlaying from dependency to avoid reset on toggle
+  }, [queue, currentIndex, settings.resolution.rows, settings.resolution.cols, settings.timing.columnDelay, settings.timing.flipDuration, isPlaying, startTimer, setPlaybackSettings, settings]);
 
   // ... (handlers)
 
-  // Determine which settings to pass to display
-  const displaySettings = isPlaying ? playbackSettings : settings;
+  // Use current settings for display
+  const displaySettings = settings;
 
   // Handlers
   const handleSettingsChange = (section, key, value) => {
@@ -282,6 +284,10 @@ function App() {
             <button
               onClick={() => {
                 soundManager.resume();
+                if (isPlaying) {
+                  // Stopping - reset grid to blank
+                  setCurrentGrid([]);
+                }
                 setIsPlaying(!isPlaying);
               }}
               style={{ backgroundColor: isPlaying ? '#dc3545' : '#28a745' }}
@@ -301,9 +307,11 @@ function App() {
             data={currentGrid}
             colorFront={displaySettings.colors.front}
             colorBack={displaySettings.colors.back}
-            columnDelay={displaySettings.timing.flipTime}
-            flipDuration={300}
+            columnDelay={displaySettings.timing.columnDelay || 100}
+            flipDuration={displaySettings.timing.flipDuration || 300}
             isPlaying={isPlaying}
+            animationDirection={displaySettings.animationDirection || 'left-right'}
+            soundType={displaySettings.soundType || 'default'}
           />
         </div>
 
@@ -342,12 +350,45 @@ function App() {
                 />
               </div>
               <div className="control-group">
-                <label>Flip Time (ms)</label>
+                <label>Flip Duration (ms)</label>
                 <input
                   type="number"
-                  value={settings.timing.flipTime}
-                  onChange={(e) => handleSettingsChange('timing', 'flipTime', parseInt(e.target.value))}
+                  value={settings.timing.flipDuration}
+                  onChange={(e) => handleSettingsChange('timing', 'flipDuration', parseInt(e.target.value))}
                 />
+              </div>
+              <div className="control-group">
+                <label>Column Delay (ms)</label>
+                <input
+                  type="number"
+                  value={settings.timing.columnDelay}
+                  onChange={(e) => handleSettingsChange('timing', 'columnDelay', parseInt(e.target.value))}
+                />
+              </div>
+              <div className="control-group">
+                <label>Animation Direction</label>
+                <select
+                  value={settings.animationDirection}
+                  onChange={(e) => setSettings({ ...settings, animationDirection: e.target.value })}
+                >
+                  <option value="left-right">Left → Right</option>
+                  <option value="right-left">Right → Left</option>
+                  <option value="top-bottom">Top → Bottom</option>
+                  <option value="bottom-top">Bottom → Top</option>
+                </select>
+              </div>
+              <div className="control-group">
+                <label>Sound Type</label>
+                <select
+                  value={settings.soundType}
+                  onChange={(e) => setSettings({ ...settings, soundType: e.target.value })}
+                >
+                  <option value="default">Default (High)</option>
+                  <option value="deep">Deep (Bass)</option>
+                  <option value="metallic">Metallic</option>
+                  <option value="soft">Soft (Muted)</option>
+                  <option value="sharp">Sharp (Crisp)</option>
+                </select>
               </div>
               <button onClick={saveSettings}>Save Settings</button>
             </div>

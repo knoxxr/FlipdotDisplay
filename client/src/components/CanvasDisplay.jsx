@@ -9,7 +9,9 @@ const CanvasDisplay = ({
     colorBack,
     columnDelay = 20,
     flipDuration = 300, // ms
-    isPlaying = true
+    isPlaying = true,
+    animationDirection = 'left-right',
+    soundType = 'default'
 }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -19,6 +21,7 @@ const CanvasDisplay = ({
     const soundPrevDataRef = useRef([]); // Separate ref for sound triggering
     const dotModifiersRef = useRef([]);
     const rowDelaysRef = useRef([]);
+    const colDelaysRef = useRef([]); // For vertical animations
 
     // Pause handling
     const pausedTimeRef = useRef(0); // Total time spent paused
@@ -53,6 +56,17 @@ const CanvasDisplay = ({
             }
             rowDelaysRef.current = delays;
         }
+
+        // Generate random column delays (for vertical animations)
+        if (colDelaysRef.current.length !== cols) {
+            const delays = new Array(cols).fill(0);
+            delays[0] = 0;
+            for (let i = 1; i < cols; i++) {
+                const increment = 1 + Math.random() * 2;
+                delays[i] = delays[i - 1] + increment;
+            }
+            colDelaysRef.current = delays;
+        }
     }, [rows, cols]);
 
     // Handle Play/Pause state changes
@@ -65,14 +79,48 @@ const CanvasDisplay = ({
             pauseStartRef.current = Date.now();
             if (requestRef.current) cancelAnimationFrame(requestRef.current);
         } else {
-            // Just resumed
+            // Just resumed - play sound if there's content
             const pauseDuration = Date.now() - pauseStartRef.current;
             pausedTimeRef.current += pauseDuration;
             requestRef.current = requestAnimationFrame(animate);
+
+            // Play sound when starting/resuming
+            if (data && data.length > 0) {
+                const prevData = soundPrevDataRef.current;
+                const hasPrevData = prevData.length === rows * cols;
+                let hasChanges = false;
+
+                if (!hasPrevData) {
+                    hasChanges = data.some(val => val !== 0);
+                } else {
+                    for (let i = 0; i < data.length; i++) {
+                        if ((data[i] || 0) !== (prevData[i] || 0)) {
+                            hasChanges = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (hasChanges) {
+                    let maxDelay;
+
+                    if (animationDirection === 'top-bottom' || animationDirection === 'bottom-top') {
+                        maxDelay = ((rows - 1) + (cols - 1) * 2) * columnDelay;
+                    } else {
+                        maxDelay = ((cols - 1) + (rows - 1) * 2) * columnDelay;
+                    }
+
+                    const totalAnimationTime = maxDelay + flipDuration;
+                    soundManager.playAnimationSound(totalAnimationTime, soundType);
+                }
+
+                // Update soundPrevDataRef after playing sound
+                soundPrevDataRef.current = [...data];
+            }
         }
 
         wasPlayingRef.current = isPlaying;
-    }, [isPlaying]);
+    }, [isPlaying, data, rows, cols, columnDelay, animationDirection, soundType]);
 
     // Handle data update
     useEffect(() => {
@@ -127,12 +175,20 @@ const CanvasDisplay = ({
 
             // Play continuous sound during animation if there are changes
             if (hasChanges) {
-                // Calculate animation duration
-                const flipDuration = 300;
-                const maxDelay = ((cols - 1) + (rows - 1) * 2) * columnDelay;
+                // Calculate animation duration based on direction
+                let maxDelay;
+
+                if (animationDirection === 'top-bottom' || animationDirection === 'bottom-top') {
+                    // Vertical: max delay based on rows and cols
+                    maxDelay = ((rows - 1) + (cols - 1) * 2) * columnDelay;
+                } else {
+                    // Horizontal: max delay based on cols and rows
+                    maxDelay = ((cols - 1) + (rows - 1) * 2) * columnDelay;
+                }
+
                 const totalAnimationTime = maxDelay + flipDuration;
 
-                soundManager.playAnimationSound(totalAnimationTime);
+                soundManager.playAnimationSound(totalAnimationTime, soundType);
             }
 
             // Update sound prev data only when playing
@@ -141,8 +197,7 @@ const CanvasDisplay = ({
 
         // Update animation prevData after animation completes
         // Calculate animation duration
-        const flipDuration = 300;
-        const maxDelay = ((cols - 1) + (rows - 1) * 2) * columnDelay;
+        let maxDelay = ((cols - 1) + (rows - 1) * 2) * columnDelay;
         const totalAnimationTime = maxDelay + flipDuration;
 
         const updateTimeout = setTimeout(() => {
@@ -199,11 +254,32 @@ const CanvasDisplay = ({
                 const startVal = prevData[index] || 0;
                 const mod = modifiers[index] || { startOffset: 0, speedMod: 1 };
 
-                // Diagonal wave delay: (col + rowDelay) * delay
-                // Add random jitter: ±20% of the *interval* (columnDelay)
-                const rowDelay = rowDelaysRef.current[r] || r * 2;
-                const baseDelay = (c + rowDelay) * columnDelay;
+                // Calculate delay based on animation direction
+                let baseDelay;
                 const jitter = mod.startOffset * columnDelay;
+
+                switch (animationDirection) {
+                    case 'right-left':
+                        // Right to left: reverse column order
+                        const rowDelay_rl = rowDelaysRef.current[r] || r * 2;
+                        baseDelay = ((cols - 1 - c) + rowDelay_rl) * columnDelay;
+                        break;
+                    case 'top-bottom':
+                        // Top to bottom: rows first, then cols
+                        const colDelay_tb = colDelaysRef.current[c] || c * 2;
+                        baseDelay = (r + colDelay_tb) * columnDelay;
+                        break;
+                    case 'bottom-top':
+                        // Bottom to top: reverse row order
+                        const colDelay_bt = colDelaysRef.current[c] || c * 2;
+                        baseDelay = ((rows - 1 - r) + colDelay_bt) * columnDelay;
+                        break;
+                    default: // 'left-right'
+                        // Left to right (original): cols first, then rows
+                        const rowDelay_lr = rowDelaysRef.current[r] || r * 2;
+                        baseDelay = (c + rowDelay_lr) * columnDelay;
+                }
+
                 const dotDelay = baseDelay + jitter;
 
                 // Randomize duration: ±20%

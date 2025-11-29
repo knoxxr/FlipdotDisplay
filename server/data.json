@@ -1,16 +1,20 @@
 {
   "settings": {
     "resolution": {
-      "rows": 30,
-      "cols": 120
+      "rows": 60,
+      "cols": 200
     },
     "colors": {
-      "front": "#616161",
-      "back": "#FFFFFF"
+      "front": "#edcf0c",
+      "back": "#454545"
     },
     "timing": {
-      "flipTime": 200
-    }
+      "flipTime": 200,
+      "columnDelay": 70,
+      "flipDuration": 500
+    },
+    "animationDirection": "left-right",
+    "soundType": "default"
   },
   "contentQueue": [
     {
@@ -33,6 +37,13 @@
       "content": "좋아요",
       "priority": 0,
       "addedAt": 1764329691975
+    },
+    {
+      "id": "1764378536550",
+      "type": "text",
+      "content": "SMIC에 오신것을 환영합니다. ",
+      "priority": 0,
+      "addedAt": 1764378536550
     }
   ]
 }

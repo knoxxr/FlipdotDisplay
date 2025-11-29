@@ -13,8 +13,9 @@ class SoundManager {
     }
 
     // Generate a realistic mechanical flipdot sound
-    createClickBuffer() {
-        if (this.buffers.click) return this.buffers.click;
+    createClickBuffer(soundType = 'default') {
+        const bufferKey = `click_${soundType}`;
+        if (this.buffers[bufferKey]) return this.buffers[bufferKey];
 
         const duration = 0.1; // 0.1 second duration
         const sampleRate = this.ctx.sampleRate;
@@ -22,25 +23,70 @@ class SoundManager {
         const buffer = this.ctx.createBuffer(1, frameCount, sampleRate);
         const data = buffer.getChannelData(0);
 
+        // Sound profile based on type
+        let freq1, freq2, clickDecay, resonanceDecay, volume;
+
+        switch (soundType) {
+            case 'deep':
+                // Low-pitched, bass-heavy
+                freq1 = 200;
+                freq2 = 400;
+                clickDecay = 300;
+                resonanceDecay = 80;
+                volume = 0.3;
+                break;
+            case 'metallic':
+                // Mid-high, harsh/bright
+                freq1 = 600;
+                freq2 = 1200;
+                clickDecay = 600;
+                resonanceDecay = 120;
+                volume = 0.25;
+                break;
+            case 'soft':
+                // Very light, muted
+                freq1 = 1000;
+                freq2 = 2000;
+                clickDecay = 400;
+                resonanceDecay = 100;
+                volume = 0.15;
+                break;
+            case 'sharp':
+                // Very high, crisp
+                freq1 = 1200;
+                freq2 = 2400;
+                clickDecay = 700;
+                resonanceDecay = 150;
+                volume = 0.2;
+                break;
+            default: // 'default'
+                // High-pitched, light (current)
+                freq1 = 800;
+                freq2 = 1600;
+                clickDecay = 500;
+                resonanceDecay = 100;
+                volume = 0.2;
+        }
+
         for (let i = 0; i < frameCount; i++) {
             const t = i / sampleRate;
 
-            // 1. Sharp "Click" (High frequency snap) - emphasized for light sound
+            // Sharp "Click"
             const noise = (Math.random() * 2 - 1);
-            const clickEnvelope = Math.exp(-t * 500); // Very fast decay
+            const clickEnvelope = Math.exp(-t * clickDecay);
 
-            // 2. Light Resonance (2x higher frequency for 2x higher pitch)
-            const resonance1 = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-t * 100); // 400Hz → 800Hz
-            const resonance2 = Math.sin(2 * Math.PI * 1600 * t) * Math.exp(-t * 120); // 800Hz → 1600Hz
+            // Resonance
+            const resonance1 = Math.sin(2 * Math.PI * freq1 * t) * Math.exp(-t * resonanceDecay);
+            const resonance2 = Math.sin(2 * Math.PI * freq2 * t) * Math.exp(-t * (resonanceDecay + 20));
 
-            // 3. Minimal Rattle (very light)
+            // Minimal Rattle
             const rattle = (Math.random() * 2 - 1) * Math.exp(-t * 150) * 0.1;
 
-            // Combine - emphasis on click, minimal bass
-            data[i] = (noise * clickEnvelope * 1.0) + ((resonance1 + resonance2) * 0.2) + rattle;
+            // Combine
+            data[i] = (noise * clickEnvelope * 1.0) + ((resonance1 + resonance2) * volume) + rattle;
         }
 
-        this.buffers.click = buffer;
+        this.buffers[bufferKey] = buffer;
         return buffer;
     }
 
@@ -93,7 +139,7 @@ class SoundManager {
     }
 
     // Play continuous sound during animation
-    async playAnimationSound(durationMs) {
+    async playAnimationSound(durationMs, soundType = 'default') {
         if (this.ctx.state === 'suspended') {
             await this.ctx.resume();
         }
@@ -107,7 +153,7 @@ class SoundManager {
 
         for (let i = 0; i < numSources; i++) {
             const source = this.ctx.createBufferSource();
-            source.buffer = this.createClickBuffer();
+            source.buffer = this.createClickBuffer(soundType);
             source.loop = true;
 
             // Randomize playback rate for each source (pitch variation)

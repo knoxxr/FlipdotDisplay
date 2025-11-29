@@ -6,7 +6,9 @@ const DATA_FILE = path.join(__dirname, 'data.json');
 const defaultSettings = {
     resolution: { rows: 30, cols: 60 },
     colors: { front: '#000000', back: '#FFFFFF' },
-    timing: { flipSpeed: 100, columnDelay: 20, slideDuration: 5000 }
+    timing: { flipDuration: 300, columnDelay: 100 },
+    animationDirection: 'left-right',
+    soundType: 'default'
 };
 
 let data = {
