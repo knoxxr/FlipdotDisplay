@@ -9,6 +9,7 @@ const CanvasDisplay = ({
     colorBack,
     columnDelay = 20,
     flipDuration = 300, // ms
+    flipDurationVariance = 20, // %
     isPlaying = true,
     animationDirection = 'left-right',
     soundType = 'default'
@@ -39,7 +40,7 @@ const CanvasDisplay = ({
         if (dotModifiersRef.current.length !== rows * cols) {
             dotModifiersRef.current = new Array(rows * cols).fill(0).map(() => ({
                 startOffset: (Math.random() * 0.4 - 0.2),
-                speedMod: 0.8 + Math.random() * 0.4
+                randomFactor: Math.random() // Store raw random value 0-1
             }));
         }
 
@@ -252,7 +253,7 @@ const CanvasDisplay = ({
                 const index = r * cols + c;
                 const targetVal = currentData[index] || 0;
                 const startVal = prevData[index] || 0;
-                const mod = modifiers[index] || { startOffset: 0, speedMod: 1 };
+                const mod = modifiers[index] || { startOffset: 0, randomFactor: 0.5 };
 
                 // Calculate delay based on animation direction
                 let baseDelay;
@@ -282,8 +283,12 @@ const CanvasDisplay = ({
 
                 const dotDelay = baseDelay + jitter;
 
-                // Randomize duration: ±20%
-                const effectiveDuration = flipDuration * mod.speedMod;
+                // Randomize duration based on variance setting
+                // variance 20% -> speedMod 0.8 to 1.2
+                // variance 0% -> speedMod 1.0
+                const varianceFactor = flipDurationVariance / 100;
+                const speedMod = 1 + (mod.randomFactor * 2 - 1) * varianceFactor;
+                const effectiveDuration = flipDuration * speedMod;
 
                 let progress = (elapsed - dotDelay) / effectiveDuration;
                 progress = Math.max(0, Math.min(1, progress));

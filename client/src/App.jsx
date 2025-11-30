@@ -11,7 +11,7 @@ function App() {
   const [settings, setSettings] = useState({
     resolution: { rows: 30, cols: 60 },
     colors: { front: '#000000', back: '#FFFFFF' },
-    timing: { flipDuration: 300, columnDelay: 100 },
+    timing: { flipDuration: 300, columnDelay: 100, flipDurationVariance: 20 },
     animationDirection: 'left-right',
     soundType: 'default'
   });
@@ -33,8 +33,12 @@ function App() {
       .then(res => res.json())
       .then(data => {
         // Ensure new structure if old data exists
-        if (!data.timing || !data.timing.columnDelay) {
-          data.timing = { flipDuration: 300, columnDelay: 100 };
+        if (!data.timing || !data.timing.columnDelay || data.timing.flipDurationVariance === undefined) {
+          data.timing = {
+            flipDuration: data.timing?.flipDuration || 300,
+            columnDelay: data.timing?.columnDelay || 100,
+            flipDurationVariance: data.timing?.flipDurationVariance !== undefined ? data.timing.flipDurationVariance : 20
+          };
         }
         setSettings(data);
       });
@@ -309,6 +313,7 @@ function App() {
             colorBack={displaySettings.colors.back}
             columnDelay={displaySettings.timing.columnDelay || 100}
             flipDuration={displaySettings.timing.flipDuration || 300}
+            flipDurationVariance={displaySettings.timing.flipDurationVariance !== undefined ? displaySettings.timing.flipDurationVariance : 20}
             isPlaying={isPlaying}
             animationDirection={displaySettings.animationDirection || 'left-right'}
             soundType={displaySettings.soundType || 'default'}
@@ -363,6 +368,16 @@ function App() {
                   type="number"
                   value={settings.timing.columnDelay}
                   onChange={(e) => handleSettingsChange('timing', 'columnDelay', parseInt(e.target.value))}
+                />
+              </div>
+              <div className="control-group">
+                <label>Duration Variance ({settings.timing.flipDurationVariance}%)</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={settings.timing.flipDurationVariance}
+                  onChange={(e) => handleSettingsChange('timing', 'flipDurationVariance', parseInt(e.target.value))}
                 />
               </div>
               <div className="control-group">
