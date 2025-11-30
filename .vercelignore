@@ -1,3 +1,5 @@
 server
-*.md
+node_modules
 .git
+*.md
+!README.md
