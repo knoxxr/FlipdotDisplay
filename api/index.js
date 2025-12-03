@@ -37,8 +37,13 @@ router.get('/content', (req, res) => {
 });
 
 router.post('/content/text', (req, res) => {
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
     const { text, priority } = req.body;
-    if (!text) return res.status(400).json({ error: 'Text is required' });
+    if (!text) {
+        console.error('Text is missing in body');
+        return res.status(400).json({ error: 'Text is required', receivedBody: req.body });
+    }
 
     const item = store.addToQueue({
         type: 'text',
