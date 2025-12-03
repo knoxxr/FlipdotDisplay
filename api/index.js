@@ -1,13 +1,19 @@
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const path = require('path');
+const { put } = require('@vercel/blob');
 const store = require('./store');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Configure multer for memory storage
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 // Settings
 app.get('/api/settings', (req, res) => {
@@ -37,6 +43,35 @@ app.post('/api/content/text', (req, res) => {
     res.json(item);
 });
 
+// Image upload endpoint
+app.post('/api/upload', upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        // Upload to Vercel Blob Storage
+        const blob = await put(req.file.originalname, req.file.buffer, {
+            access: 'public',
+            token: process.env.BLOB_READ_WRITE_TOKEN,
+        });
+
+        // Add to queue
+        const item = store.addToQueue({
+            type: 'image',
+            content: blob.url,
+            originalName: req.file.originalname,
+            priority: 0,
+            addedAt: Date.now()
+        });
+
+        res.json(item);
+    } catch (error) {
+        console.error('Upload error:', error);
+        res.status(500).json({ error: 'Upload failed', details: error.message });
+    }
+});
+
 app.delete('/api/content/:id', (req, res) => {
     store.removeFromQueue(req.params.id);
     res.json({ success: true });
@@ -48,5 +83,13 @@ app.put('/api/content/reorder', (req, res) => {
     store.updateQueue(queue);
     res.json({ success: true });
 });
+
+// Start server if run directly (local development)
+if (require.main === module) {
+    const PORT = process.env.PORT || 3001;
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
 
 module.exports = app;

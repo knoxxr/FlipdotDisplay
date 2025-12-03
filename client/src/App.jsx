@@ -68,8 +68,8 @@ function App() {
       if (item.type === 'text') {
         grid = processText(item.content, settings.resolution.rows, settings.resolution.cols);
       } else if (item.type === 'image') {
-        const imageUrl = `http://localhost:3001${item.content}`;
-        grid = await processImage(imageUrl, settings.resolution.rows, settings.resolution.cols);
+        // Use the content URL directly (it's already a full URL from Blob Storage or server)
+        grid = await processImage(item.content, settings.resolution.rows, settings.resolution.cols);
       }
       setCurrentGrid(grid);
     } catch (err) {
@@ -164,8 +164,8 @@ function App() {
         if (item.type === 'text') {
           grid = processText(item.content, settings.resolution.rows, settings.resolution.cols);
         } else if (item.type === 'image') {
-          const imageUrl = `http://localhost:3001${item.content}`;
-          grid = await processImage(imageUrl, settings.resolution.rows, settings.resolution.cols);
+          // Use the content URL directly (it's already a full URL from Blob Storage or server)
+          grid = await processImage(item.content, settings.resolution.rows, settings.resolution.cols);
         }
         setCurrentGrid(grid);
       } catch (err) {

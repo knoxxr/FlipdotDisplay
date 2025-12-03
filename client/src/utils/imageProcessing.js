@@ -2,7 +2,10 @@ export const processImage = (imageUrl, rows, cols) => {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = "Anonymous";
-        img.src = imageUrl;
+
+        // Append timestamp to bypass cache and avoid CORS issues with cached images
+        const separator = imageUrl.includes('?') ? '&' : '?';
+        img.src = `${imageUrl}${separator}t=${Date.now()}`;
 
         img.onload = () => {
             const canvas = document.createElement('canvas');
