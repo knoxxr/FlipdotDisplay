@@ -5,6 +5,7 @@ const { put } = require('@vercel/blob');
 const store = require('./store');
 
 const app = express();
+const router = express.Router();
 
 app.use(cors());
 app.use(express.json());
@@ -15,22 +16,27 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
+// Health check
+router.get('/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
+
 // Settings
-app.get('/api/settings', (req, res) => {
+router.get('/settings', (req, res) => {
     res.json(store.getSettings());
 });
 
-app.post('/api/settings', (req, res) => {
+router.post('/settings', (req, res) => {
     const updated = store.updateSettings(req.body);
     res.json(updated);
 });
 
 // Content
-app.get('/api/content', (req, res) => {
+router.get('/content', (req, res) => {
     res.json(store.getQueue());
 });
 
-app.post('/api/content/text', (req, res) => {
+router.post('/content/text', (req, res) => {
     const { text, priority } = req.body;
     if (!text) return res.status(400).json({ error: 'Text is required' });
 
@@ -44,7 +50,7 @@ app.post('/api/content/text', (req, res) => {
 });
 
 // Image upload endpoint
-app.post('/api/upload', upload.single('image'), async (req, res) => {
+router.post('/upload', upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
@@ -72,17 +78,23 @@ app.post('/api/upload', upload.single('image'), async (req, res) => {
     }
 });
 
-app.delete('/api/content/:id', (req, res) => {
+router.delete('/content/:id', (req, res) => {
     store.removeFromQueue(req.params.id);
     res.json({ success: true });
 });
 
-app.put('/api/content/reorder', (req, res) => {
+router.put('/content/reorder', (req, res) => {
     const { queue } = req.body;
     if (!Array.isArray(queue)) return res.status(400).json({ error: 'Queue must be an array' });
     store.updateQueue(queue);
     res.json({ success: true });
 });
+
+// Mount router at both /api and / to handle Vercel routing quirks
+// If Vercel strips /api, the request matches /
+// If Vercel keeps /api, the request matches /api
+app.use('/api', router);
+app.use('/', router);
 
 // Start server if run directly (local development)
 if (require.main === module) {
