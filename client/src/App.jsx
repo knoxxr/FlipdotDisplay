@@ -14,7 +14,8 @@ function App() {
     colors: { front: '#000000', back: '#FFFFFF' },
     timing: { flipDuration: 300, columnDelay: 100, flipDurationVariance: 20 },
     animationDirection: 'left-right',
-    soundType: 'default'
+    soundType: 'default',
+    dotShape: 'circle' // 'circle' or 'square'
   });
 
   const [queue, setQueue] = useState([]);
@@ -135,6 +136,10 @@ function App() {
             columnDelay: data.timing?.columnDelay || 100,
             flipDurationVariance: data.timing?.flipDurationVariance !== undefined ? data.timing.flipDurationVariance : 20
           };
+        }
+        // Init dotShape if missing
+        if (!data.dotShape) {
+          data.dotShape = 'circle';
         }
         setSettings(data);
       });
@@ -294,20 +299,25 @@ function App() {
     };
   }, [queue, currentIndex, settings.resolution.rows, settings.resolution.cols, settings.timing.columnDelay, settings.timing.flipDuration, isPlaying, startTimer, setPlaybackSettings, settings]);
 
-  // ... (handlers)
-
-  // Use current settings for display
   const displaySettings = settings;
 
   // Handlers
   const handleSettingsChange = (section, key, value) => {
-    const newSettings = {
-      ...settings,
-      [section]: {
-        ...settings[section],
+    let newSettings;
+    if (section === 'root') {
+      newSettings = {
+        ...settings,
         [key]: value
-      }
-    };
+      };
+    } else {
+      newSettings = {
+        ...settings,
+        [section]: {
+          ...settings[section],
+          [key]: value
+        }
+      };
+    }
     setSettings(newSettings);
 
     // Auto-save settings to server
@@ -427,6 +437,7 @@ function App() {
             isPlaying={isPlaying}
             animationDirection={displaySettings.animationDirection || 'left-right'}
             soundType={displaySettings.soundType || 'default'}
+            dotShape={displaySettings.dotShape || 'circle'}
           />
         </div>
 
@@ -499,15 +510,7 @@ function App() {
                 <label>Animation Direction</label>
                 <select
                   value={settings.animationDirection}
-                  onChange={(e) => {
-                    const newSettings = { ...settings, animationDirection: e.target.value };
-                    setSettings(newSettings);
-                    fetch(`${API_URL}/settings`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(newSettings)
-                    });
-                  }}
+                  onChange={(e) => handleSettingsChange('root', 'animationDirection', e.target.value)}
                   disabled={isPlaying}
                 >
                   <option value="left-right">Left → Right</option>
@@ -517,18 +520,21 @@ function App() {
                 </select>
               </div>
               <div className="control-group">
+                <label>Dot Shape</label>
+                <select
+                  value={settings.dotShape || 'circle'}
+                  onChange={(e) => handleSettingsChange('root', 'dotShape', e.target.value)}
+                  disabled={isPlaying}
+                >
+                  <option value="circle">Circle (Realistic)</option>
+                  <option value="square">Square (Classic)</option>
+                </select>
+              </div>
+              <div className="control-group">
                 <label>Sound Type</label>
                 <select
                   value={settings.soundType}
-                  onChange={(e) => {
-                    const newSettings = { ...settings, soundType: e.target.value };
-                    setSettings(newSettings);
-                    fetch(`${API_URL}/settings`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(newSettings)
-                    });
-                  }}
+                  onChange={(e) => handleSettingsChange('root', 'soundType', e.target.value)}
                   disabled={isPlaying}
                 >
                   <option value="default">Default (High)</option>

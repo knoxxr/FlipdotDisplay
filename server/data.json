@@ -1,20 +1,21 @@
 {
   "settings": {
     "resolution": {
-      "rows": 60,
-      "cols": 200
+      "rows": 10,
+      "cols": 50
     },
     "colors": {
       "front": "#edcf0c",
       "back": "#454545"
     },
     "timing": {
-      "flipTime": 200,
+      "flipDuration": 500,
       "columnDelay": 70,
-      "flipDuration": 500
+      "flipDurationVariance": 20
     },
     "animationDirection": "left-right",
-    "soundType": "default"
+    "soundType": "default",
+    "dotShape": "circle"
   },
   "contentQueue": [
     {

@@ -12,7 +12,8 @@ const CanvasDisplay = ({
     flipDurationVariance = 20, // %
     isPlaying = true,
     animationDirection = 'left-right',
-    soundType = 'default'
+    soundType = 'default',
+    dotShape = 'circle'
 }) => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
@@ -210,6 +211,33 @@ const CanvasDisplay = ({
         };
     }, [data, cols, rows, columnDelay, isPlaying]);
 
+    // Helper to darken color
+    const adjustColor = (color, amount) => {
+        return '#' + color.replace(/^#/, '').replace(/../g, color => ('0' + Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
+    }
+
+    useEffect(() => {
+        if (isPlaying) {
+            requestRef.current = requestAnimationFrame(animate);
+        }
+        return () => cancelAnimationFrame(requestRef.current);
+    }, [rows, cols, data, colorFront, colorBack, columnDelay, flipDuration, isPlaying, dotShape]);
+
+    // Helper to draw rounded rectangle
+    const roundedRect = (ctx, x, y, width, height, radius) => {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+    }
+
     const animate = () => {
         if (!isPlaying) return; // Don't run loop if paused
 
@@ -229,16 +257,24 @@ const CanvasDisplay = ({
         const width = canvas.width;
         const height = canvas.height;
 
-        // Calculate dot size
-        const dotWidth = width / cols;
-        const dotHeight = height / rows;
-        const size = Math.min(dotWidth, dotHeight);
+        // Calculate dot size with spacing
+        const cellWidth = width / cols;
+        const cellHeight = height / rows;
+        const cellSize = Math.min(cellWidth, cellHeight);
+
+        // Realistic dot size: 85% of cell to show housing between dots
+        // For square, we can go a bit larger to look like classic panels
+        const dotSize = dotShape === 'square' ? cellSize * 0.9 : cellSize * 0.85;
+        const radius = dotSize / 2;
+        const cornerRadius = dotShape === 'square' ? dotSize * 0.15 : 0;
 
         // Center the grid
-        const offsetX = (width - (size * cols)) / 2;
-        const offsetY = (height - (size * rows)) / 2;
+        const offsetX = (width - (cellSize * cols)) / 2;
+        const offsetY = (height - (cellSize * rows)) / 2;
 
-        ctx.clearRect(0, 0, width, height);
+        // Draw panel background
+        ctx.fillStyle = '#2a2a2a'; // Dark gray housing
+        ctx.fillRect(0, 0, width, height);
 
         const now = Date.now();
         // Adjusted elapsed time: subtract total paused time
@@ -261,22 +297,18 @@ const CanvasDisplay = ({
 
                 switch (animationDirection) {
                     case 'right-left':
-                        // Right to left: reverse column order
                         const rowDelay_rl = rowDelaysRef.current[r] || r * 2;
                         baseDelay = ((cols - 1 - c) + rowDelay_rl) * columnDelay;
                         break;
                     case 'top-bottom':
-                        // Top to bottom: rows first, then cols
                         const colDelay_tb = colDelaysRef.current[c] || c * 2;
                         baseDelay = (r + colDelay_tb) * columnDelay;
                         break;
                     case 'bottom-top':
-                        // Bottom to top: reverse row order
                         const colDelay_bt = colDelaysRef.current[c] || c * 2;
                         baseDelay = ((rows - 1 - r) + colDelay_bt) * columnDelay;
                         break;
                     default: // 'left-right'
-                        // Left to right (original): cols first, then rows
                         const rowDelay_lr = rowDelaysRef.current[r] || r * 2;
                         baseDelay = (c + rowDelay_lr) * columnDelay;
                 }
@@ -284,8 +316,6 @@ const CanvasDisplay = ({
                 const dotDelay = baseDelay + jitter;
 
                 // Randomize duration based on variance setting
-                // variance 20% -> speedMod 0.8 to 1.2
-                // variance 0% -> speedMod 1.0
                 const varianceFactor = flipDurationVariance / 100;
                 const speedMod = 1 + (mod.randomFactor * 2 - 1) * varianceFactor;
                 const effectiveDuration = flipDuration * speedMod;
@@ -297,7 +327,7 @@ const CanvasDisplay = ({
                 let showFront = false;
                 let scaleY = 1;
 
-                // Always animate scaleY if in progress (creates the wave effect)
+                // Smooth flip animation
                 if (progress < 1 && progress > 0) {
                     scaleY = Math.abs(Math.cos(progress * Math.PI));
                 }
@@ -309,79 +339,165 @@ const CanvasDisplay = ({
                     showFront = targetVal === 1;
                 }
 
-                // Flag for shading
-                let isFlipping = progress < 1 && progress > 0;
+                const isFlipping = progress < 1 && progress > 0;
 
-                const cx = offsetX + c * size + size / 2;
-                const cy = offsetY + r * size + size / 2;
+                const cx = offsetX + c * cellSize + cellSize / 2;
+                const cy = offsetY + r * cellSize + cellSize / 2;
 
-                // Shape parameters
-                const dotSize = size * 0.9;
-                const w = dotSize;
-                const h = dotSize;
-                const x = cx - w / 2;
-                const y = cy - h / 2;
-                const cornerRadius = w * 0.15;
-                const notchRadius = w * 0.15;
+                // --- Draw Housing Hole ---
+                ctx.save();
+                if (dotShape === 'square') {
+                    // Rounded rect hole
+                    const holeSize = dotSize * 1.05;
+                    roundedRect(ctx, cx - holeSize / 2, cy - holeSize / 2, holeSize, holeSize, cornerRadius * 1.05);
+                } else {
+                    // Circle hole
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius * 1.05, 0, Math.PI * 2);
+                }
 
+                // Deep shadow for the hole
+                // Use radial gradient for shadow regardless of shape as it looks like a deep recess
+                const holeGradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 1.05);
+                holeGradient.addColorStop(0, '#1a1a1a');
+                holeGradient.addColorStop(0.7, '#0f0f0f');
+                holeGradient.addColorStop(1, '#000000');
+                ctx.fillStyle = holeGradient;
+                ctx.fill();
+
+                // Inner shadow ring/stroke
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.restore();
+
+
+                // --- Apply transformation for Flip ---
                 ctx.save();
                 ctx.translate(cx, cy);
                 ctx.scale(1, scaleY);
-                ctx.translate(-cx, -cy); // Move back to draw in world coords but scaled around center
+                ctx.translate(-cx, -cy);
 
-                // Helper to draw the shape path
-                const drawShape = () => {
-                    const right = x + w;
-                    const bottom = y + h;
-                    const centerY = y + h / 2;
+
+                // --- Draw Flipdot ---
+                if (dotShape === 'square') {
+                    // Draw rounded square path
+                    roundedRect(ctx, cx - dotSize / 2, cy - dotSize / 2, dotSize, dotSize, cornerRadius);
+                } else {
+                    // Draw circle path
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                }
+
+                // --- Coloring & Lighting ---
+                const baseColor = showFront ? colorFront : colorBack;
+
+                if (dotShape === 'square') {
+                    // Linear gradient for square to look more like a flat plate
+                    // but with some top-down lighting
+                    const squareGradient = ctx.createLinearGradient(cx, cy - dotSize / 2, cx, cy + dotSize / 2);
+                    squareGradient.addColorStop(0, adjustColor(baseColor, 30)); // Top edge highlight
+                    squareGradient.addColorStop(0.2, baseColor);
+                    squareGradient.addColorStop(0.8, baseColor);
+                    squareGradient.addColorStop(1, adjustColor(baseColor, -30)); // Bottom edge shadow
+                    ctx.fillStyle = squareGradient;
+                } else {
+                    // Radial gradient for 3D curved surface (Circle)
+                    const dotGradient = ctx.createRadialGradient(
+                        cx - radius * 0.3, cy - radius * 0.3, 0,
+                        cx, cy, radius
+                    );
+                    dotGradient.addColorStop(0, adjustColor(baseColor, 40));
+                    dotGradient.addColorStop(0.3, adjustColor(baseColor, 20));
+                    dotGradient.addColorStop(0.7, baseColor);
+                    dotGradient.addColorStop(1, adjustColor(baseColor, -40));
+                    ctx.fillStyle = dotGradient;
+                }
+                ctx.fill();
+
+
+                // --- Bevel / Trim ---
+                ctx.save();
+                if (dotShape === 'square') {
+                    roundedRect(ctx, cx - dotSize / 2, cy - dotSize / 2, dotSize, dotSize, cornerRadius);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                }
+                ctx.clip();
+
+                // Top-left highlight
+                ctx.beginPath();
+                if (dotShape === 'square') {
+                    // Simple line highlight for square
+                    ctx.moveTo(cx - dotSize / 2, cy + dotSize / 2);
+                    ctx.lineTo(cx - dotSize / 2, cy - dotSize / 2);
+                    ctx.lineTo(cx + dotSize / 2, cy - dotSize / 2);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.lineWidth = 2;
+                } else {
+                    // Arc highlight for circle
+                    ctx.arc(cx - radius * 0.1, cy - radius * 0.1, radius * 0.9, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctx.lineWidth = radius * 0.12;
+                }
+                ctx.stroke();
+                ctx.restore();
+
+
+                // --- Specular Highlight (Circle only or subtle on square) ---
+                if (dotShape === 'circle') {
+                    const highlightX = cx - radius * 0.35;
+                    const highlightY = cy - radius * 0.35;
+                    const highlightGradient = ctx.createRadialGradient(
+                        highlightX, highlightY, 0,
+                        highlightX, highlightY, radius * 0.4
+                    );
+                    highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+                    highlightGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)');
+                    highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
                     ctx.beginPath();
-                    ctx.moveTo(x + cornerRadius, y);
-                    ctx.lineTo(right - cornerRadius, y);
-                    ctx.quadraticCurveTo(right, y, right, y + cornerRadius);
-
-                    // Right side with notch
-                    ctx.lineTo(right, centerY - notchRadius);
-                    ctx.arc(right, centerY, notchRadius, -Math.PI / 2, Math.PI / 2, true); // Inward notch
-                    ctx.lineTo(right, bottom - cornerRadius);
-
-                    ctx.quadraticCurveTo(right, bottom, right - cornerRadius, bottom);
-                    ctx.lineTo(x + cornerRadius, bottom);
-                    ctx.quadraticCurveTo(x, bottom, x, bottom - cornerRadius);
-                    ctx.lineTo(x, y + cornerRadius);
-                    ctx.quadraticCurveTo(x, y, x + cornerRadius, y);
-                    ctx.closePath();
-                };
-
-                // Draw hole background (shadow)
-                drawShape();
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                ctx.fill();
-
-                // Main Dot
-                drawShape();
-
-                // Gradient for 3D curvature (adjusted for rect)
-                // Use a linear gradient for a more "flat plastic" look or radial for slight curve
-                const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
-                const baseColor = showFront ? colorFront : colorBack;
-                gradient.addColorStop(0, baseColor);
-                gradient.addColorStop(1, adjustColor(baseColor, -30));
-
-                ctx.fillStyle = gradient;
-                ctx.fill();
-
-                // Specular highlight (subtle top-left shine)
-                ctx.beginPath();
-                ctx.ellipse(x + w * 0.25, y + h * 0.25, w * 0.15, h * 0.1, Math.PI / 4, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                ctx.fill();
-
-                // Simple shading for flip animation
-                if (isFlipping) {
-                    drawShape();
-                    ctx.fillStyle = `rgba(0,0,0,${0.3 * (1 - scaleY)})`;
+                    ctx.arc(highlightX, highlightY, radius * 0.4, 0, Math.PI * 2);
+                    ctx.fillStyle = highlightGradient;
                     ctx.fill();
+                } else {
+                    // Subtle sheen for square
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+                    ctx.fillRect(cx - dotSize / 2, cy - dotSize / 2, dotSize, dotSize * 0.3);
+                }
+
+                // --- Surface Texture ---
+                const imperfection = mod.randomFactor * 0.05;
+                ctx.globalAlpha = imperfection;
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                ctx.beginPath();
+                if (dotShape === 'square') {
+                    ctx.arc(cx + (Math.random() - 0.5) * dotSize, cy + (Math.random() - 0.5) * dotSize, dotSize * 0.1, 0, Math.PI * 2);
+                } else {
+                    ctx.arc(cx + (Math.random() - 0.5) * radius, cy + (Math.random() - 0.5) * radius, radius * 0.2, 0, Math.PI * 2);
+                }
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+
+                // --- Flip Shadow Overlay ---
+                if (isFlipping) {
+                    if (dotShape === 'square') {
+                        roundedRect(ctx, cx - dotSize / 2, cy - dotSize / 2, dotSize, dotSize, cornerRadius);
+                    } else {
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                    }
+                    ctx.fillStyle = `rgba(0, 0, 0, ${0.4 * (1 - scaleY)})`;
+                    ctx.fill();
+
+                    // Edge thickness thickness logic
+                    if (scaleY < 0.3) {
+                        ctx.fillStyle = adjustColor(baseColor, -60);
+                        // Draw edge rect
+                        ctx.fillRect(cx - dotSize / 2, cy - 2, dotSize, 4);
+                    }
                 }
 
                 ctx.restore();
@@ -390,18 +506,6 @@ const CanvasDisplay = ({
 
         requestRef.current = requestAnimationFrame(animate);
     };
-
-    // Helper to darken color
-    const adjustColor = (color, amount) => {
-        return '#' + color.replace(/^#/, '').replace(/../g, color => ('0' + Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
-    }
-
-    useEffect(() => {
-        if (isPlaying) {
-            requestRef.current = requestAnimationFrame(animate);
-        }
-        return () => cancelAnimationFrame(requestRef.current);
-    }, [rows, cols, data, colorFront, colorBack, columnDelay, flipDuration, isPlaying]);
 
     return (
         <div ref={containerRef} style={{ width: '100%', height: '100%', minHeight: '300px' }}>
