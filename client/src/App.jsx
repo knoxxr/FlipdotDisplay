@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import CanvasDisplay from './components/CanvasDisplay';
 import { processImage } from './utils/imageProcessing';
 import { processText } from './utils/textProcessing';
@@ -26,6 +27,101 @@ function App() {
 
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showPinchHint, setShowPinchHint] = useState(false);
+
+  // Pinch zoom state management
+  const touchStateRef = useRef({
+    initialDistance: 0,
+    currentDistance: 0,
+    isPinching: false,
+    startTime: 0
+  });
+
+  // Calculate distance between two touch points
+  const getDistance = (touch1, touch2) => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Handle touch start for pinch detection
+  const handleTouchStart = useCallback((e) => {
+    if (e.touches.length === 2) {
+      const distance = getDistance(e.touches[0], e.touches[1]);
+      touchStateRef.current = {
+        initialDistance: distance,
+        currentDistance: distance,
+        isPinching: true,
+        startTime: Date.now()
+      };
+    }
+  }, []);
+
+  // Handle touch move for pinch detection
+  const handleTouchMove = useCallback((e) => {
+    if (e.touches.length === 2 && touchStateRef.current.isPinching) {
+      const distance = getDistance(e.touches[0], e.touches[1]);
+      touchStateRef.current.currentDistance = distance;
+
+      // Prevent default zoom behavior
+      e.preventDefault();
+    }
+  }, []);
+
+  // Handle touch end for pinch gesture completion
+  const handleTouchEnd = useCallback((e) => {
+    if (touchStateRef.current.isPinching && e.touches.length < 2) {
+      const { initialDistance, currentDistance, startTime } = touchStateRef.current;
+      const distanceChange = currentDistance - initialDistance;
+      const duration = Date.now() - startTime;
+
+      // Threshold: at least 50px change and gesture completed within 1 second
+      const DISTANCE_THRESHOLD = 50;
+      const TIME_THRESHOLD = 1000;
+
+      if (Math.abs(distanceChange) > DISTANCE_THRESHOLD && duration < TIME_THRESHOLD) {
+        if (distanceChange > 0) {
+          // Pinch out (zoom in) - enter fullscreen
+          if (!isFullScreen) {
+            setIsFullScreen(true);
+            setShowPinchHint(true);
+            setTimeout(() => setShowPinchHint(false), 3000);
+          }
+        } else {
+          // Pinch in (zoom out) - exit fullscreen
+          if (isFullScreen) {
+            setIsFullScreen(false);
+            setShowPinchHint(true);
+            setTimeout(() => setShowPinchHint(false), 3000);
+          }
+        }
+      }
+
+      // Reset touch state
+      touchStateRef.current = {
+        initialDistance: 0,
+        currentDistance: 0,
+        isPinching: false,
+        startTime: 0
+      };
+    }
+  }, [isFullScreen]);
+
+  // Add touch event listeners
+  useEffect(() => {
+    const displaySection = document.querySelector('.display-section');
+    if (displaySection) {
+      displaySection.addEventListener('touchstart', handleTouchStart, { passive: false });
+      displaySection.addEventListener('touchmove', handleTouchMove, { passive: false });
+      displaySection.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+      return () => {
+        displaySection.removeEventListener('touchstart', handleTouchStart);
+        displaySection.removeEventListener('touchmove', handleTouchMove);
+        displaySection.removeEventListener('touchend', handleTouchEnd);
+      };
+    }
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   // Fetch initial data
   useEffect(() => {
@@ -213,15 +309,12 @@ function App() {
       }
     };
     setSettings(newSettings);
-    // Debounce save? For now just save on blur or button click usually, but here we update state immediately.
-    // Let's add a "Save Settings" button to persist to server.
-  };
 
-  const saveSettings = () => {
+    // Auto-save settings to server
     fetch(`${API_URL}/settings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings)
+      body: JSON.stringify(newSettings)
     });
   };
 
@@ -263,6 +356,23 @@ function App() {
       });
   };
 
+  const handleReorder = (result) => {
+    if (!result.destination) return;
+
+    const items = Array.from(queue);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setQueue(items);
+
+    // Save to server
+    fetch(`${API_URL}/content/reorder`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ queue: items })
+    });
+  };
+
   const toggleFullScreen = () => {
     setIsFullScreen(!isFullScreen);
   };
@@ -283,7 +393,7 @@ function App() {
     <div className={`app-container ${isFullScreen ? 'full-screen-mode' : ''}`}>
       {!isFullScreen && (
         <header>
-          <h1>Flipdot Display Simulator</h1>
+          <h1>Flipdot Display Banner</h1>
           <div className="header-controls">
             <button
               onClick={() => {
@@ -346,12 +456,14 @@ function App() {
                   type="color"
                   value={settings.colors.front}
                   onChange={(e) => handleSettingsChange('colors', 'front', e.target.value)}
+                  disabled={isPlaying}
                 />
                 <label>Back Color</label>
                 <input
                   type="color"
                   value={settings.colors.back}
                   onChange={(e) => handleSettingsChange('colors', 'back', e.target.value)}
+                  disabled={isPlaying}
                 />
               </div>
               <div className="control-group">
@@ -360,6 +472,7 @@ function App() {
                   type="number"
                   value={settings.timing.flipDuration}
                   onChange={(e) => handleSettingsChange('timing', 'flipDuration', parseInt(e.target.value))}
+                  disabled={isPlaying}
                 />
               </div>
               <div className="control-group">
@@ -368,6 +481,7 @@ function App() {
                   type="number"
                   value={settings.timing.columnDelay}
                   onChange={(e) => handleSettingsChange('timing', 'columnDelay', parseInt(e.target.value))}
+                  disabled={isPlaying}
                 />
               </div>
               <div className="control-group">
@@ -378,13 +492,23 @@ function App() {
                   max="100"
                   value={settings.timing.flipDurationVariance}
                   onChange={(e) => handleSettingsChange('timing', 'flipDurationVariance', parseInt(e.target.value))}
+                  disabled={isPlaying}
                 />
               </div>
               <div className="control-group">
                 <label>Animation Direction</label>
                 <select
                   value={settings.animationDirection}
-                  onChange={(e) => setSettings({ ...settings, animationDirection: e.target.value })}
+                  onChange={(e) => {
+                    const newSettings = { ...settings, animationDirection: e.target.value };
+                    setSettings(newSettings);
+                    fetch(`${API_URL}/settings`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(newSettings)
+                    });
+                  }}
+                  disabled={isPlaying}
                 >
                   <option value="left-right">Left → Right</option>
                   <option value="right-left">Right → Left</option>
@@ -396,7 +520,16 @@ function App() {
                 <label>Sound Type</label>
                 <select
                   value={settings.soundType}
-                  onChange={(e) => setSettings({ ...settings, soundType: e.target.value })}
+                  onChange={(e) => {
+                    const newSettings = { ...settings, soundType: e.target.value };
+                    setSettings(newSettings);
+                    fetch(`${API_URL}/settings`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(newSettings)
+                    });
+                  }}
+                  disabled={isPlaying}
                 >
                   <option value="default">Default (High)</option>
                   <option value="deep">Deep (Bass)</option>
@@ -405,7 +538,6 @@ function App() {
                   <option value="sharp">Sharp (Crisp)</option>
                 </select>
               </div>
-              <button onClick={saveSettings}>Save Settings</button>
             </div>
 
             <div className="panel-section">
@@ -417,9 +549,10 @@ function App() {
                     placeholder="Enter text..."
                     value={textInput}
                     onChange={(e) => setTextInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddText()}
+                    onKeyDown={(e) => e.key === 'Enter' && !isPlaying && handleAddText()}
+                    disabled={isPlaying}
                   />
-                  <button onClick={handleAddText}>Add Text</button>
+                  <button onClick={handleAddText} disabled={isPlaying}>Add Text</button>
                 </div>
                 <div className="input-row">
                   <input
@@ -427,26 +560,65 @@ function App() {
                     type="file"
                     accept="image/*"
                     onChange={(e) => setFileInput(e.target.files[0])}
+                    disabled={isPlaying}
                   />
-                  <button onClick={handleFileUpload}>Upload Image</button>
+                  <button onClick={handleFileUpload} disabled={isPlaying}>Upload Image</button>
                 </div>
               </div>
 
               <div className="queue-list">
                 <h3>Queue</h3>
-                <ul>
-                  {queue.map((item, index) => (
-                    <li key={item.id} className={index === currentIndex ? 'active' : ''}>
-                      <span>{item.type === 'text' ? item.content : item.originalName}</span>
-                      <button onClick={() => handleDelete(item.id)}>X</button>
-                    </li>
-                  ))}
-                </ul>
+                <DragDropContext onDragEnd={handleReorder}>
+                  <Droppable droppableId="queue" isDropDisabled={isPlaying}>
+                    {(provided, snapshot) => (
+                      <ul
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className={snapshot.isDraggingOver ? 'dragging-over' : ''}
+                      >
+                        {queue.map((item, index) => (
+                          <Draggable
+                            key={item.id}
+                            draggableId={item.id}
+                            index={index}
+                            isDragDisabled={isPlaying}
+                          >
+                            {(provided, snapshot) => (
+                              <li
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={`${index === currentIndex ? 'active' : ''} ${snapshot.isDragging ? 'dragging' : ''}`}
+                              >
+                                <span
+                                  {...provided.dragHandleProps}
+                                  className="drag-handle"
+                                  title={isPlaying ? 'Stop playback to reorder' : 'Drag to reorder'}
+                                >
+                                  ⋮⋮
+                                </span>
+                                <span className="queue-item-content">{item.type === 'text' ? item.content : item.originalName}</span>
+                                <button onClick={() => handleDelete(item.id)} disabled={isPlaying}>X</button>
+                              </li>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </ul>
+                    )}
+                  </Droppable>
+                </DragDropContext>
               </div>
             </div>
           </div>
         )}
       </main>
+
+      {/* Pinch zoom hint overlay */}
+      {showPinchHint && (
+        <div className="pinch-hint">
+          {isFullScreen ? 'Pinch to zoom out to exit fullscreen' : 'Pinch to zoom in to enter fullscreen'}
+        </div>
+      )}
     </div>
   );
 }

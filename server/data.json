@@ -44,6 +44,27 @@
       "content": "SMIC에 오신것을 환영합니다. ",
       "priority": 0,
       "addedAt": 1764378536550
+    },
+    {
+      "id": "1766224794360",
+      "type": "text",
+      "content": "Test Message",
+      "priority": 0,
+      "addedAt": 1766224794360
+    },
+    {
+      "id": "1766224946892",
+      "type": "text",
+      "content": "Test 2",
+      "priority": 0,
+      "addedAt": 1766224946892
+    },
+    {
+      "id": "1766225103479",
+      "type": "text",
+      "content": "테스트 메시지",
+      "priority": 0,
+      "addedAt": 1766225103479
     }
   ]
 }
