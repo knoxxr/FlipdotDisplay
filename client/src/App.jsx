@@ -10,8 +10,8 @@ const API_URL = '/api';
 
 function App() {
   const [settings, setSettings] = useState({
-    resolution: { rows: 30, cols: 60 },
-    colors: { front: '#000000', back: '#FFFFFF' },
+    resolution: { rows: 25, cols: 80 },
+    colors: { front: '#FFFF00', back: '#000000' },
     timing: { flipDuration: 300, columnDelay: 100, flipDurationVariance: 20 },
     animationDirection: 'left-right',
     soundType: 'default',
@@ -146,7 +146,20 @@ function App() {
 
     fetch(`${API_URL}/content`)
       .then(res => res.json())
-      .then(data => setQueue(data));
+      .then(data => {
+        if (data && data.length > 0) {
+          setQueue(data);
+        } else {
+          // If empty, add sample text
+          setQueue([
+            { id: 'sample-1', type: 'text', content: 'Hello' },
+            { id: 'sample-2', type: 'text', content: 'This is' },
+            { id: 'sample-3', type: 'text', content: 'Flip Dot Banner' }
+          ]);
+        }
+        // Auto-start playback
+        setIsPlaying(true);
+      });
   }, []);
 
   const [playbackSettings, setPlaybackSettings] = useState(settings);
@@ -366,6 +379,19 @@ function App() {
       });
   };
 
+  const handleDeleteAll = () => {
+    if (window.confirm('Are you sure you want to delete all contents?')) {
+      fetch(`${API_URL}/content`, { method: 'DELETE' })
+        .then(() => {
+          setQueue([]);
+          // Also reset the grid if stopped
+          if (!isPlaying) {
+            setCurrentGrid([]);
+          }
+        });
+    }
+  };
+
   const handleReorder = (result) => {
     if (!result.destination) return;
 
@@ -573,7 +599,10 @@ function App() {
               </div>
 
               <div className="queue-list">
-                <h3>Queue</h3>
+                <div className="queue-header">
+                  <h3>Queue</h3>
+                  <button onClick={handleDeleteAll} disabled={isPlaying} className="delete-all-btn">Delete All Contents</button>
+                </div>
                 <DragDropContext onDragEnd={handleReorder}>
                   <Droppable droppableId="queue" isDropDisabled={isPlaying}>
                     {(provided, snapshot) => (

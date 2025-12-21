@@ -2,8 +2,8 @@
 // Note: Data will be lost on function cold starts
 
 let settings = {
-    resolution: { rows: 30, cols: 60 },
-    colors: { front: '#000000', back: '#FFFFFF' },
+    resolution: { rows: 25, cols: 80 },
+    colors: { front: '#FFFF00', back: '#000000' },
     timing: { flipDuration: 300, columnDelay: 100, flipDurationVariance: 20 },
     animationDirection: 'left-right',
     soundType: 'default'

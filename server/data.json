@@ -1,12 +1,12 @@
 {
   "settings": {
     "resolution": {
-      "rows": 10,
-      "cols": 50
+      "rows": 25,
+      "cols": 80
     },
     "colors": {
-      "front": "#edcf0c",
-      "back": "#454545"
+      "front": "#FFFF00",
+      "back": "#000000"
     },
     "timing": {
       "flipDuration": 500,
@@ -15,57 +15,7 @@
     },
     "animationDirection": "left-right",
     "soundType": "default",
-    "dotShape": "circle"
+    "dotShape": "square"
   },
-  "contentQueue": [
-    {
-      "id": "1764324748253",
-      "type": "text",
-      "content": "Hello",
-      "priority": 0,
-      "addedAt": 1764324748253
-    },
-    {
-      "id": "1764327468552",
-      "type": "text",
-      "content": "안녕하세요",
-      "priority": 0,
-      "addedAt": 1764327468552
-    },
-    {
-      "id": "1764329691975",
-      "type": "text",
-      "content": "좋아요",
-      "priority": 0,
-      "addedAt": 1764329691975
-    },
-    {
-      "id": "1764378536550",
-      "type": "text",
-      "content": "SMIC에 오신것을 환영합니다. ",
-      "priority": 0,
-      "addedAt": 1764378536550
-    },
-    {
-      "id": "1766224794360",
-      "type": "text",
-      "content": "Test Message",
-      "priority": 0,
-      "addedAt": 1766224794360
-    },
-    {
-      "id": "1766224946892",
-      "type": "text",
-      "content": "Test 2",
-      "priority": 0,
-      "addedAt": 1766224946892
-    },
-    {
-      "id": "1766225103479",
-      "type": "text",
-      "content": "테스트 메시지",
-      "priority": 0,
-      "addedAt": 1766225103479
-    }
-  ]
+  "contentQueue": []
 }

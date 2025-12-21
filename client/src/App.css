@@ -410,6 +410,21 @@ select:disabled {
 /* ========================================
    Queue List
    ======================================== */
+.queue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.delete-all-btn {
+  background-color: #dc3545;
+  font-size: 0.8rem;
+  padding: 5px 10px;
+  min-height: 30px;
+  min-width: unset;
+}
+
 .queue-list ul {
   list-style: none;
   padding: 0;

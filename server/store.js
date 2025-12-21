@@ -4,8 +4,8 @@ const path = require('path');
 const DATA_FILE = path.join(__dirname, 'data.json');
 
 const defaultSettings = {
-    resolution: { rows: 30, cols: 60 },
-    colors: { front: '#000000', back: '#FFFFFF' },
+    resolution: { rows: 25, cols: 80 },
+    colors: { front: '#FFFF00', back: '#000000' },
     timing: { flipDuration: 300, columnDelay: 100, flipDurationVariance: 20 },
     animationDirection: 'left-right',
     soundType: 'default'

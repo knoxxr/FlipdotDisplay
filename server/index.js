@@ -81,6 +81,11 @@ app.delete('/api/content/:id', (req, res) => {
     res.json({ success: true });
 });
 
+app.delete('/api/content', (req, res) => {
+    store.updateQueue([]);
+    res.json({ success: true });
+});
+
 app.put('/api/content/reorder', (req, res) => {
     const { queue } = req.body;
     if (!Array.isArray(queue)) return res.status(400).json({ error: 'Queue must be an array' });
