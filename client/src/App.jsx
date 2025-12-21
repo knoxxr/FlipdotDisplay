@@ -429,6 +429,13 @@ function App() {
     <div className={`app-container ${isFullScreen ? 'full-screen-mode' : ''}`}>
       {!isFullScreen && (
         <header>
+          <button
+            className="back-btn"
+            onClick={() => window.location.href = '/'}
+            title="Return to Portal"
+          >
+            ← Back to Kimserv
+          </button>
           <h1>Flipdot Display Banner</h1>
           <div className="header-controls">
             <button

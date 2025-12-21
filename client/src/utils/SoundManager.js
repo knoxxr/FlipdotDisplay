@@ -92,8 +92,12 @@ class SoundManager {
 
     playClick(time = 0, volume = 0.1) {
         if (this.ctx.state === 'suspended') {
-            this.ctx.resume();
+            try {
+                this.ctx.resume();
+            } catch (e) { }
         }
+
+        if (this.ctx.state === 'suspended') return;
 
         const source = this.ctx.createBufferSource();
         source.buffer = this.createClickBuffer();
@@ -141,7 +145,16 @@ class SoundManager {
     // Play continuous sound during animation
     async playAnimationSound(durationMs, soundType = 'default') {
         if (this.ctx.state === 'suspended') {
-            await this.ctx.resume();
+            try {
+                await this.ctx.resume();
+            } catch (e) {
+                // Ignore resume error
+            }
+        }
+
+        // If still suspended (no user interaction yet), don't try to play
+        if (this.ctx.state === 'suspended') {
+            return;
         }
 
         // Stop any existing animation sound
