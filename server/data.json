@@ -17,5 +17,19 @@
     "soundType": "default",
     "dotShape": "square"
   },
-  "contentQueue": []
+  "contentQueue": [],
+  "services": [
+    {
+      "id": "1766308584484",
+      "name": "Test Service 1",
+      "hideBackButton": false,
+      "createdAt": 1766308584484
+    },
+    {
+      "id": "1766308584496",
+      "name": "Test Service 2",
+      "hideBackButton": false,
+      "createdAt": 1766308584496
+    }
+  ]
 }

@@ -10,6 +10,7 @@ let settings = {
 };
 
 let queue = [];
+let services = [];
 let idCounter = 1;
 
 function getSettings() {
@@ -48,5 +49,17 @@ module.exports = {
     getQueue,
     addToQueue,
     removeFromQueue,
-    updateQueue
+    updateQueue,
+    getServices: () => services,
+    addService: (item) => {
+        const newItem = { id: String(idCounter++), ...item };
+        services.push(newItem);
+        return newItem;
+    },
+    updateService: (id, updates) => {
+        const index = services.findIndex(s => s.id === id);
+        if (index === -1) return null;
+        services[index] = { ...services[index], ...updates };
+        return services[index];
+    }
 };

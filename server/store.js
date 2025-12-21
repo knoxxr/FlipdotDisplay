@@ -13,7 +13,8 @@ const defaultSettings = {
 
 let data = {
     settings: { ...defaultSettings },
-    contentQueue: []
+    contentQueue: [],
+    services: []
 };
 
 // Load data from file if exists
@@ -57,5 +58,23 @@ module.exports = {
     updateQueue: (newQueue) => {
         data.contentQueue = newQueue;
         saveData();
+    },
+    // Services methods
+    getServices: () => data.services || [],
+    addService: (serviceData) => {
+        const newService = { ...serviceData, id: Date.now().toString(), createdAt: Date.now() };
+        if (!data.services) data.services = [];
+        data.services.push(newService);
+        saveData();
+        return newService;
+    },
+    updateService: (id, updates) => {
+        if (!data.services) data.services = [];
+        const index = data.services.findIndex(s => s.id === id);
+        if (index === -1) return null;
+
+        data.services[index] = { ...data.services[index], ...updates };
+        saveData();
+        return data.services[index];
     }
 };

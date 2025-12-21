@@ -95,6 +95,24 @@ router.put('/content/reorder', (req, res) => {
     res.json({ success: true });
 });
 
+// Services
+router.get('/services', (req, res) => {
+    res.json(store.getServices());
+});
+
+router.post('/services', (req, res) => {
+    const { createService } = require('../models/Service');
+    const newService = createService(req.body);
+    const stored = store.addService(newService);
+    res.json(stored);
+});
+
+router.put('/services/:id', (req, res) => {
+    const updated = store.updateService(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Service not found' });
+    res.json(updated);
+});
+
 // Mount router at both /api and / to handle Vercel routing quirks
 // If Vercel strips /api, the request matches /
 // If Vercel keeps /api, the request matches /api

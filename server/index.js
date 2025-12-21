@@ -93,6 +93,24 @@ app.put('/api/content/reorder', (req, res) => {
     res.json({ success: true });
 });
 
+// Services
+app.get('/api/services', (req, res) => {
+    res.json(store.getServices());
+});
+
+app.post('/api/services', (req, res) => {
+    const { createService } = require('../models/Service');
+    const newService = createService(req.body);
+    const stored = store.addService(newService);
+    res.json(stored);
+});
+
+app.put('/api/services/:id', (req, res) => {
+    const updated = store.updateService(req.params.id, req.body);
+    if (!updated) return res.status(404).json({ error: 'Service not found' });
+    res.json(updated);
+});
+
 // The "catchall" handler: for any request that doesn't
 // match one above, send back React's index.html file.
 app.use((req, res) => {
